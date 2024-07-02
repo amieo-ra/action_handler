@@ -93,7 +93,24 @@ class ActionMiddleman(Node):
     def cancel_callback(self, msg):
         self.get_logger().info('Received cancel request')
         if self.current_goal:
-            self.current_goal.cancel_goal_async()
+            cancel_future = self.current_goal.cancel_goal_async()
+            # self.current_goal.cancel_goal_async()
+
+                
+        self.get_logger().info("Waiting till terminating the current preemption")
+        while rclpy.ok():
+            try: 
+                rclpy.spin_once(self, executor=self.executor_goto_client)
+                # rclpy.spin_until_future_complete(self, cancel_future, executor=self.executor_goto_client, timeout_sec=2.0)
+                if cancel_future.done() and self.goal_get_result_future.done():
+                    self.action_status = self.goal_get_result_future.result().status
+                    self.get_logger().info("The goal cancel error code {} ".format(self.get_goal_cancle_error_msg(cancel_future.result().return_code)))
+                    return True 
+            except Exception as e:
+                # self.goal_handle = None
+                self.get_logger().error("Edge Action Manager: error while canceling the previous action")
+                return False 
+            
 
     def feedback_callback(self, feedback_msg):
         self.nav_client_feedback = feedback_msg.feedback
