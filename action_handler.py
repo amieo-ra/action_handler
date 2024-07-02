@@ -1,7 +1,8 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
-from topological_navigation_msgs.msg import ExecutePolicyModeFeedback, ExecutePolicyMode, ExecutePolicyModeResult
+#from topological_navigation_msgs.msg import ExecutePolicyModeFeedback, ExecutePolicyModeResult
+from topological_navigation_msgs.msg import ExecutePolicyModeFeedback, ExecutePolicyModeGoal, ExecutePolicyModeActionGoal
 from topological_navigation_msgs.action import GotoNode, ExecutePolicyMode
 from std_msgs.msg import String  # Adjust according to the data types you expect
 from actionlib_msgs.msg import GoalID, GoalStatusArray
@@ -16,15 +17,16 @@ class ActionMiddleman(Node):
         self.client = ActionClient(self, GotoNode, self.action_server_name)
 
         # Subscribe to the custom topics
-        self.goal_subscriber = self.create_subscription(ExecutePolicyMode, 'topological_navigation/execute_policy_mode/goal', self.goal_callback, 10)
+        self.goal_subscriber = self.create_subscription(ExecutePolicyModeActionGoal, 'topological_navigation/execute_policy_mode/goal', self.goal_callback, 10)
         self.cancel_subscriber = self.create_subscription(GoalID, 'topological_navigation/execute_policy_mode/cancel', self.cancel_callback, 10)
         # Publishers for feedback and result
         self.feedback_publisher = self.create_publisher(ExecutePolicyModeFeedback, 'topological_navigation/execute_policy_mode/feedback', 10)
-        self.result_publisher = self.create_publisher(ExecutePolicyModeResult, 'topological_navigation/execute_policy_mode/result', 10)
+        self.result_publisher = self.create_publisher(ExecutePolicyModeGoal, 'topological_navigation/execute_policy_mode/result', 10) #(ExecutePolicyModeResult, 'topological_navigation/execute_policy_mode/result', 10)
         self.status_publisher = self.create_publisher(GoalStatusArray, 'topological_navigation/execute_policy_mode/status', 10)
         self.current_goal = None
+        print("waiting for topics")
 
-    def callback_goto_client(self, msg):
+    def goal_callback(self, msg):
         self.get_logger().info(f'Received new goal: {msg.data}')
         goal = msg.route.edge_id[-1].split('_')[-1]
         # Parse the message according to your actual message structure
@@ -48,7 +50,7 @@ class ActionMiddleman(Node):
     def goal_response_callback(self, future):
         result = future.result().result
         self.get_logger().info(f'Goal completed with result: {result.sequence}')
-        result_array = ExecutePolicyModeResult()
+        result_array = ExecutePolicyModeGoal # was ExecutePolicyModeResult()
         result_array.data = result.sequence
         self.result_publisher.publish(result_array)
 
