@@ -22,7 +22,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'action_handler.py = action_handler.action_handler:main'
+            'middle_node.py = action_handler.middle_node:main'
         ],
     },
 
